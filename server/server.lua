@@ -18,6 +18,10 @@ RegisterNetEvent("garages:PreserveVehicles", function ()
     end
 end)
 
+RegisterNetEvent("garages:spawnVehicle", function (plate)
+    DeimpoundVehicle(plate)
+end)
+
 ESX.RegisterServerCallback("garages:impoundVehicles", function (source, cb, garageName)
 
     local source    = source

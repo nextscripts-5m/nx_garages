@@ -26,7 +26,7 @@ Config.Blip = {
         sprite      = 357,
         display     = 4,
         scale       = 0.6,
-        color       = 0,
+        color       = 3,
         shortRange  = true,
         name        = "Garage"
     },

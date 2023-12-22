@@ -204,6 +204,8 @@ OpenGarage = function (type, garageName)
                         if type == "impound" then
                             PayImpound(args.props.plate)
                         end
+
+                        TriggerServerEvent("garages:spawnVehicle", args.props.plate)
                     end)
                 end
             )
