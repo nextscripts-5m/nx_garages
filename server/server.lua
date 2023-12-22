@@ -58,6 +58,7 @@ ESX.RegisterServerCallback("validateVehicle", function (source, cb, props, garag
     if valid then
         MySQL.query.await("UPDATE owned_vehicles SET garage = ? WHERE plate = ?", {garageName, props.plate})
         MySQL.query.await("UPDATE owned_vehicles SET stored = 1 WHERE plate = ?", {props.plate})
+        MySQL.query.await("UPDATE owned_vehicles SET vehicle = ? WHERE plate = ?", {json.encode(props), props.plate})
     end
 
     cb(valid)
