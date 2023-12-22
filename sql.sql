@@ -1,0 +1,2 @@
+ALTER TABLE `owned_vehicles`
+ADD garage VARCHAR(255) DEFAULT NULL;
