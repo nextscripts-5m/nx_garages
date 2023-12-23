@@ -15,7 +15,15 @@ In the `config.lua`:
 This is a pre-release for me. This resource will receive updates, first: the NUI. Then I'll listen to all community ideas for improving this resource and make it more configurable!
 
 ## 🎬 Preview
-_Soon_
+[Video](https://youtu.be/0Vzmbx6bY44)
+
+### Information
+Ensure that the stored column in database is:
+
+- `0` for outside vehicles
+- `1` for parked
+- `2` for stored
+
 
 ### 🔗 Discord
 Join the [discord](https://discord.gg/VU9Vhyhe7b) for sharing your ideas and receiving support!
