@@ -1,6 +1,23 @@
 local loaded        = false
 local currentGarage = nil
 local currentAuto   = nil
+local currentPoint  = nil
+
+if Config.UI == "gridsystem" then
+    CreateThread(function ()
+        while true do
+            Wait(0)
+            if not HasStreamedTextureDictLoaded(Config.StreamFile) then
+                RequestStreamedTextureDict(Config.StreamFile, true)
+                while not HasStreamedTextureDictLoaded(Config.StreamFile) do
+                    Wait(1)
+                end
+            end
+            break
+        end
+        print(("^3%s^7::Marker Loaded"):format(GetCurrentResourceName()))
+    end)
+end
 
 RegisterNetEvent("esx:playerLoaded", function ()
 
@@ -30,6 +47,7 @@ ConfigureImpounds = function ()
     end
 end
 
+
 ---Create a Generic Garage
 ---@param position vector3 the position
 ---@param type string garage or impound
@@ -41,6 +59,8 @@ CreateGarage = function (position, type, garageName, action)
 
         local index = ("%s-%s"):format(action, type)
 
+
+
         if position == vec3(0, 0, 0) then
             print(("Skipped '%s' with name: %s"):format(type, garageName))
             goto continue
@@ -48,22 +68,58 @@ CreateGarage = function (position, type, garageName, action)
 
         local point = lib.points.new({
             coords      = position,
-            distance    = action == "deposit" and 8.5 or 4.5,
+            distance    = action == "deposit" and 7.0 or 4.5,
             type        = type,
             garageName  = garageName,
+            action      = action,
+            index       = index,
+            customId    = ("%s-%s"):format(type, garageName)
         })
 
         function point:onEnter()
             print(("Entered %s"):format(self.garageName))
+            
             currentGarage = self.garageName
+            currentPoint = self.id
+
+            if Config.UI == "lib" then
+                local options = Config.TextUI[index]
+                lib.showTextUI(options.text, {
+                    position    = options.position,
+                    icon        = options.icon,
+                    style       = options.style
+                })
+            end
+
+            if Config.UI == "gridsystem" then
+                TriggerGridSystem(self, index)
+            end
+
         end
 
         function point:onExit()
             print(("Exited %s"):format(self.garageName))
+
+            if Config.UI == "lib" and currentPoint == self.id then
+                lib.hideTextUI()
+            end
+
+            if Config.UI == "gridsystem" and currentPoint == self.id then
+                TriggerEvent('gridsystem:unregisterMarker', "Marker: " .. self.customId)
+            end
         end
 
         function point:nearby()
-            DrawText3D(self.coords.x, self.coords.y, self.coords.z, Language[index]:format("E"))
+
+            if Config.UI == "3d" then
+                DrawText3D(self.coords.x, self.coords.y, self.coords.z, Language[index]:format("E"))
+            end
+
+            if Config.UI == "lib" then
+                local coords    = GetSafeZ(self.coords.x, self.coords.y, self.coords.z)
+                local scale     = action == "deposit" and vec3(4, 4, 4) or vec3(1.2, 1.2, 1.2)
+                DrawMarker(27, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, scale.x, scale.y, scale.z, 65, 105, 225, 100, false, true, 2, true, nil, nil, false)
+            end
 
             if self.currentDistance < self.distance and IsControlJustReleased(0, Config.Open) then
                 HandleAction(action, type, currentGarage)
@@ -74,6 +130,40 @@ CreateGarage = function (position, type, garageName, action)
     end)
 end
 
+TriggerGridSystem = function (self, index)
+    
+    local coords = vec3(self.coords.x, self.coords.y, self.coords.z)
+
+    TriggerEvent('gridsystem:registerMarker', {
+        name            = "Marker: " .. self.customId, -- DO NOT CHANGE DO NOT CHANGE DO NOT CHANGE DO NOT CHANGE DO NOT CHANGE DO NOT CHANGE 
+        pos             = coords,
+        drawDistance    = self.action == "deposit" and 7.0 or 4.5,
+        scale           = vector3(1.2, 1.2, 1.2),
+        msg             = Language[index]:format("E"),
+        control         = Config.Open,
+        type            = 9, -- this depends on your own gridsystem
+        textureDict     = Config.StreamFile,
+        textureName     = Config.CustomMarkers[self.action], -- THIS IS THE TEXTURE NAME THAT YOU CAN SEE ON OpenIV
+        rotate          = true,
+        color           = { r = 255, g = 255, b = 255 },
+
+        action          = function()
+            -- handled by point
+        end,
+
+        onEnter         = function ()
+            if Config.CustomTextUI then
+                local label = (Config.OpenMarker[self.index] and Config.OpenMarker[self.index] or 'Config.OpenMarker')
+                TriggerEvent('ToggleUI', true, Config.DefaultAvatar, "E", label) -- my own gridsystem event
+            end
+        end,
+        onExit          = function ()
+            if Config.CustomTextUI then
+                TriggerEvent('ToggleUI', false) -- my own gridsystem event
+            end
+        end
+    })
+end
 
 HandleAction = function (action, type, garageName)
 
@@ -137,11 +227,12 @@ OpenGarage = function (type, garageName)
                 end
             end
 
+            local index = ("open-%s"):format(type)
 
             lib.registerMenu({
-                id          = Config.Menu["open-garage"].id,
-                title       = Config.Menu["open-garage"].title,
-                position    = Config.Menu["open-garage"].position,
+                id          = Config.Menu[index].id,
+                title       = Config.Menu[index].title,
+                position    = Config.Menu[index].position,
                 options     = options,
 
                 onSelected = function (selected, scrollIndex, args)
@@ -210,7 +301,7 @@ OpenGarage = function (type, garageName)
                 end
             )
 
-            lib.showMenu(Config.Menu["open-garage"].id)
+            lib.showMenu(Config.Menu[index].id)
         else
             ESX.ShowNotification(Language["no-vehicles"])
             return
@@ -251,6 +342,10 @@ FoundPosition = function (spawnCoords, k)
     return position
 end
 
+GetSafeZ = function (x, y, z)
+    local _, safeZ = GetGroundZFor_3dCoord(x, y, z, true)
+    return vector3(x, y, safeZ)
+end
 
 AddBlip = function (type, position)
 
